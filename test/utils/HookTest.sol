@@ -10,7 +10,7 @@ import {PoolModifyPositionTest} from "@uniswap/v4-core/contracts/test/PoolModify
 import {PoolSwapTest} from "@uniswap/v4-core/contracts/test/PoolSwapTest.sol";
 import {PoolDonateTest} from "@uniswap/v4-core/contracts/test/PoolDonateTest.sol";
 
-import {TestERC20} from "@uniswap/v4-core/contracts/test/TestERC20.sol";
+import {ERC20} from "../mocks/ERC20.sol";
 import {TickMath} from "@uniswap/v4-core/contracts/libraries/TickMath.sol";
 
 /// @notice Contract to initialize some test helpers
@@ -20,16 +20,16 @@ contract HookTest is Test {
     PoolModifyPositionTest modifyPositionRouter;
     PoolSwapTest swapRouter;
     PoolDonateTest donateRouter;
-    TestERC20 token0;
-    TestERC20 token1;
+    ERC20 token0;
+    ERC20 token1;
 
     uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_RATIO + 1;
     uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_RATIO - 1;
 
     function initHookTestEnv() public {
         uint256 amount = 2 ** 128;
-        TestERC20 _tokenA = new TestERC20(amount);
-        TestERC20 _tokenB = new TestERC20(amount);
+        ERC20 _tokenA = new ERC20(amount);
+        ERC20 _tokenB = new ERC20(amount);
 
         // pools alphabetically sort tokens by address
         // so align `token0` with `pool.token0` for consistency
