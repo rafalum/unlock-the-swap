@@ -11,15 +11,24 @@ import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
 import {Deployers} from "@uniswap/v4-core/test/foundry-tests/utils/Deployers.sol";
 import {CurrencyLibrary, Currency} from "@uniswap/v4-core/contracts/types/Currency.sol";
-import {HookTest} from "./utils/HookTest.sol";
-import {Counter} from "../src/Counter.sol";
-import {HookMiner} from "./utils/HookMiner.sol";
+import {Fees} from "@uniswap/v4-core/contracts/Fees.sol";
+import {FeeLibrary} from "@uniswap/v4-core/contracts/libraries/FeeLibrary.sol";
 
-contract CounterTest is HookTest, Deployers, GasSnapshot {
+import {HookTest} from "./utils/HookTest.sol";
+import {HookMiner} from "./utils/HookMiner.sol";
+import {UnlockTest} from "./utils/UnlockTest.sol";
+
+import {FlatRateFeeHook} from "../src/FlatRateFeeHook.sol";
+
+import {IUnlockV12} from "unlock/packages/contracts/src/contracts/Unlock/IUnlockV12.sol";
+import {IPublicLockV13} from "unlock/packages/contracts/src/contracts/PublicLock/IPublicLockV13.sol";
+
+
+contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
-    Counter counter;
+    FlatRateFeeHook hookContract;
     PoolKey poolKey;
     PoolId poolId;
 
@@ -27,17 +36,21 @@ contract CounterTest is HookTest, Deployers, GasSnapshot {
         // creates the pool manager, test tokens, and other utility routers
         HookTest.initHookTestEnv();
 
+        // creates the unlock factory and adds and sets a lock template
+        UnlockTest.initUnlockTestEnv();
+
         // Deploy the hook to an address with the correct flags
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_MODIFY_POSITION_FLAG
-                | Hooks.AFTER_MODIFY_POSITION_FLAG
-        );
-        (address hookAddress, bytes32 salt) = HookMiner.find(address(this), flags, 0, type(Counter).creationCode, abi.encode(address(manager)));
-        counter = new Counter{salt: salt}(IPoolManager(address(manager)));
-        require(address(counter) == hookAddress, "CounterTest: hook address mismatch");
+        uint160 flags = uint160(Hooks.AFTER_INITIALIZE_FLAG);
+
+        (address hookAddress, bytes32 salt) = HookMiner.find(address(this), flags, 0, type(FlatRateFeeHook).creationCode, abi.encode(address(manager), address(unlockProxy)));
+        hookContract = new FlatRateFeeHook{salt: salt}(IPoolManager(address(manager)), IUnlockV12(address(unlockProxy)));
+        require(address(hookContract) == hookAddress, "hook address mismatch");
+
+        // Dynamic Fee
+        uint24 dynamicFee = FeeLibrary.DYNAMIC_FEE_FLAG;
 
         // Create the pool
-        poolKey = PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), 3000, 60, IHooks(counter));
+        poolKey = PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), dynamicFee, 60, IHooks(hookContract));
         poolId = poolKey.toId();
         manager.initialize(poolKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
@@ -49,21 +62,13 @@ contract CounterTest is HookTest, Deployers, GasSnapshot {
         );
     }
 
-    function testCounterHooks() public {
-        // positions were created in setup()
-        assertEq(counter.beforeModifyPositionCount(), 3);
-        assertEq(counter.afterModifyPositionCount(), 3);
+    function testInitialize() public {
+        assertEq(address(hookContract.unlock()), address(unlockProxy));
 
-        assertEq(counter.beforeSwapCount(), 0);
-        assertEq(counter.afterSwapCount(), 0);
+        address lockAddress = hookContract.lockContracts(poolId);
 
-        // Perform a test swap //
-        int256 amount = 100;
-        bool zeroForOne = true;
-        swap(poolKey, amount, zeroForOne);
-        // ------------------- //
-
-        assertEq(counter.beforeSwapCount(), 1);
-        assertEq(counter.afterSwapCount(), 1);
+        console2.logAddress(lockAddress);   
+        console2.logAddress(IPublicLockV13(lockAddress).owner());
     }
+
 }
