@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "forge-std/Test.sol";
+
 import {BaseHook} from "v4-periphery/BaseHook.sol";
 
 import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
@@ -47,22 +49,12 @@ contract FlatRateFeeHook is BaseHook {
     {   
         PoolId poolId = poolKey.toId();
 
-        address _tokenAddress;
-        if (hookData.length == 0) {
-            // `hookData` is not set to anything -> use currency0 as token address
-            _tokenAddress = Currency.unwrap(poolKey.currency0);
-        } else {
-            // `hookData` contains data
-            _tokenAddress = _bytesToAddress(hookData);
-        }
-
-        // Create a lock for the poolKey        
-        uint256 _expirationDuration = 2_592_000; // 30 days
-        uint256 _keyPrice = 10_000_000_000_000_000; // 0.01 ETH
-        uint256 _maxNumberOfKeys = 1000;
+        // Decode the hook data as the parameters for the new lock        
+        (address _tokenAddress, uint256 _expirationDuration, uint256 _keyPrice, uint256 _maxNumberOfKeys) = abi.decode(hookData, (address, uint256, uint256, uint256));
         string memory _lockName = string.concat("Lock_", string(abi.encodePacked(PoolId.unwrap(poolId))));
         bytes12 _salt = bytes12(0);
 
+        // Create the lock
         address lockAddress =
             unlock.createLock(_expirationDuration, _tokenAddress, _keyPrice, _maxNumberOfKeys, _lockName, _salt);
 
@@ -80,9 +72,16 @@ contract FlatRateFeeHook is BaseHook {
         PoolId poolId = poolKey.toId();
         IPublicLockV13 lockContract = IPublicLockV13(lockContracts[poolId]);
 
+        address swapper = msg.sender; // pool manager
+        // sender is the swap router
+
+        console2.log("Swapper", swapper);
+
         if (lockContract.balanceOf(sender) > 0) {
+            console2.log("pays 0 fee");
             return 0;
         } else {
+            console2.log("pays 20000 fee");
             return 20000;
         }
     }
