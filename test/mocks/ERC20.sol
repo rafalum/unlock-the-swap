@@ -1,3 +1,5 @@
+pragma solidity ^0.8.20;
+
 import {TestERC20} from "@uniswap/v4-core/contracts/test/TestERC20.sol";
 
 contract ERC20 is TestERC20 {
