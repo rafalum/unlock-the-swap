@@ -1,12 +1,4 @@
-# v4-template
-### **A template for writing Uniswap v4 Hooks 🦄**
-
-[`Use this Template`](https://github.com/saucepoint/v4-template/generate)
-
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
-
----
+# Unlock The Swap: A Uniswap v4 hook for flat rate based trading
 
 ### Local Development (Anvil)
 
@@ -24,12 +16,11 @@ Because v4 exceeds the bytecode limit of Ethereum and it's *business licensed*, 
 anvil --code-size-limit 30000
 
 # in a new terminal
-forge script script/Counter.s.sol \
+forge script script/FlatRateFeeHook.s.sol:FlateRateFeeHookScript \
     --rpc-url http://localhost:8545 \
     --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
     --code-size-limit 30000 \
     --broadcast
-```
 
 ---
 
