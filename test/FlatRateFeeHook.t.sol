@@ -66,11 +66,6 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
         modifyPositionRouter.modifyPosition(
             poolKey, IPoolManager.ModifyPositionParams(TickMath.minUsableTick(60), TickMath.maxUsableTick(60), 10 ether)
         );
-
-        console2.log("pool manager", address(manager));
-        console2.log("swap router", address(swapRouter));
-        console2.log("donate router", address(donateRouter));
-        console2.log("modify position router", address(modifyPositionRouter));
     }
 
     function testInitialize() public {
@@ -107,7 +102,7 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
     function testSwap() public {
         // retrieve the lock contract for the pool
         address lockAddress = hookContract.lockContracts(poolId);
-        address user = address(swapRouter);
+        address user = address(42);
 
         // mint and approve tokens
         _mintAndApprove(user, lockAddress, 10**18);
@@ -122,7 +117,7 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
         bool zeroForOne = true;
 
         vm.startBroadcast(user);
-        swap(poolKey, amount, true);
+        swap(poolKey, amount, zeroForOne);
         vm.stopBroadcast();
 
         // check balance of user
