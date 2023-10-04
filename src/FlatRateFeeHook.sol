@@ -62,7 +62,7 @@ contract FlatRateFeeHook is BaseHook {
     }
 
 
-    function getFee(address sender, PoolKey calldata poolKey, IPoolManager.SwapParams calldata, bytes calldata hookData) 
+    function getFee(address, PoolKey calldata poolKey, IPoolManager.SwapParams calldata, bytes calldata hookData) 
         external 
         view
         returns (uint24 newFee) 
@@ -70,8 +70,8 @@ contract FlatRateFeeHook is BaseHook {
         PoolId poolId = poolKey.toId();
         IPublicLockV13 lockContract = IPublicLockV13(lockContracts[poolId]);
 
-        address poolManager = msg.sender; // pool manager
-        address poolSwap = sender; // poolSwap
+        // address poolManager = msg.sender;
+        // address poolSwap = sender;
         address swapper = abi.decode(hookData, (address)); // swapper
 
         if (lockContract.balanceOf(swapper) > 0) {
