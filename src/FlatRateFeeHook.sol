@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
-
 import {BaseHook} from "v4-periphery/BaseHook.sol";
 
 import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
@@ -64,7 +62,7 @@ contract FlatRateFeeHook is BaseHook {
     }
 
 
-    function getFee(address sender, PoolKey calldata poolKey, IPoolManager.SwapParams calldata, bytes calldata) 
+    function getFee(address sender, PoolKey calldata poolKey, IPoolManager.SwapParams calldata, bytes calldata hookData) 
         external 
         view
         returns (uint24 newFee) 
@@ -72,29 +70,15 @@ contract FlatRateFeeHook is BaseHook {
         PoolId poolId = poolKey.toId();
         IPublicLockV13 lockContract = IPublicLockV13(lockContracts[poolId]);
 
-        address swapper = msg.sender; // pool manager
-        // sender is the swap router
+        address poolManager = msg.sender; // pool manager
+        address poolSwap = sender; // poolSwap
+        address swapper = abi.decode(hookData, (address)); // swapper
 
-        console2.log("Swapper", swapper);
-
-        if (lockContract.balanceOf(sender) > 0) {
-            console2.log("pays 0 fee");
+        if (lockContract.balanceOf(swapper) > 0) {
             return 0;
         } else {
-            console2.log("pays 20000 fee");
             return 20000;
         }
-    }
-
-
-
-    function _bytesToAddress(bytes memory bys) internal pure returns (address) {
-        require(bys.length == 20, "Invalid address length"); // Check that the input bytes are 20 bytes long (160 bits)
-        address addr;
-        assembly {
-            addr := mload(add(bys, 0x14)) // Load the 20 bytes from memory and store it as an address
-        }
-        return addr;
     }
 
 }
