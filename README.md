@@ -1,4 +1,6 @@
-# Unlock The Swap: A Uniswap v4 hook for flat rate based trading
+# Unlock The Swap
+
+[![Github Actions][gha-badge]][gha] [![Foundry][foundry-badge]][foundry] [![License: MIT][license-badge]][license]
 
 ### Local Development (Anvil)
 
