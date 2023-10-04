@@ -61,8 +61,8 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
         manager.initialize(poolKey, SQRT_RATIO_1_1, hookData);
 
         // Provide liquidity to the pool
-        modifyPositionRouter.modifyPosition(poolKey, IPoolManager.ModifyPositionParams(-60, 60, 10 ether));
-        modifyPositionRouter.modifyPosition(poolKey, IPoolManager.ModifyPositionParams(-120, 120, 10 ether));
+        modifyPositionRouter.modifyPosition(poolKey, IPoolManager.ModifyPositionParams(-60, 60, 10000 ether));
+        modifyPositionRouter.modifyPosition(poolKey, IPoolManager.ModifyPositionParams(-120, 120, 10000 ether));
         modifyPositionRouter.modifyPosition(
             poolKey, IPoolManager.ModifyPositionParams(TickMath.minUsableTick(60), TickMath.maxUsableTick(60), 10 ether)
         );
@@ -99,31 +99,61 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
         assertEq(IPublicLockV13(lockAddress).balanceOf(user), 1);
     }
 
-    function testSwap() public {
+    function testSwapWithoutFee() public {
         // retrieve the lock contract for the pool
         address lockAddress = hookContract.lockContracts(poolId);
-        address user = address(42);
+        address swapper = address(42);
 
-        // mint and approve tokens
-        _mintAndApprove(user, lockAddress, 10**18);
-    
-        _purchaseKey(lockAddress, user);
+        uint256 amountToMint = 10**18;
 
-        // mint and approve tokens
-        _mintAndApprove(user, address(swapRouter), 10**18);
+        // buy key for swapper
+        _mintAndApprove(swapper, lockAddress, amountToMint);
+        _purchaseKey(lockAddress, swapper);
+
+        // mint and approve tokens to swap
+        _mintAndApprove(swapper, address(swapRouter), amountToMint);
         
-        // Perform a test swap
-        int256 amount = 0.5 * 10**18;
+        // Swap half of token0 for token1
+        int256 swapAmount = int256(amountToMint / 2);
         bool zeroForOne = true;
 
-        vm.startBroadcast(user);
-        swap(poolKey, amount, zeroForOne);
+        vm.startBroadcast(swapper);
+        swap(poolKey, swapAmount, zeroForOne);
         vm.stopBroadcast();
 
         // check balance of user
-        uint256 balanceToken1 = token1.balanceOf(user);
+        uint256 balanceToken0 = amountToMint / 2;
+        uint256 balanceToken1 = token1.balanceOf(swapper);
 
-        console2.log(balanceToken1);   
+        uint256 slippage = 12493440943505; // TODO: dont hardcode slippage
+        assertApproxEqAbs(balanceToken0, balanceToken1, slippage);
+    }
+
+        function testSwapWithFee() public {
+        // retrieve the lock contract for the pool
+        address swapper = address(42);
+
+        uint256 amountToMint = 10**18;
+
+        // mint and approve tokens
+        _mintAndApprove(swapper, address(swapRouter), amountToMint);
+        
+        // Swap half of token0 for token1
+        int256 swapAmount = int256(amountToMint / 2);
+        bool zeroForOne = true;
+
+        vm.startBroadcast(swapper);
+        swap(poolKey, swapAmount, zeroForOne);
+        vm.stopBroadcast();
+
+        // check balance of user
+        uint256 balanceToken0 = amountToMint / 2;
+        uint256 balanceToken1 = token1.balanceOf(swapper);
+
+        uint256 slippage = 12493440943505; // TODO: dont hardcode slippage
+        uint256 fee = uint(swapAmount * 2 / 100); // TODO: dont hardcode fee
+
+        assertApproxEqAbs(balanceToken0, balanceToken1 + fee, slippage);
     }
 
     function _mintAndApprove(address user, address spender, uint256 amount) public {
