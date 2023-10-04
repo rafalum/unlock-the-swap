@@ -7,18 +7,18 @@ import {PoolManager} from "@uniswap/v4-core/contracts/PoolManager.sol";
 import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
 import {PoolModifyPositionTest} from "@uniswap/v4-core/contracts/test/PoolModifyPositionTest.sol";
-import {PoolSwapTest} from "@uniswap/v4-core/contracts/test/PoolSwapTest.sol";
 import {PoolDonateTest} from "@uniswap/v4-core/contracts/test/PoolDonateTest.sol";
+import {TickMath} from "@uniswap/v4-core/contracts/libraries/TickMath.sol";
 
 import {ERC20} from "../mocks/ERC20.sol";
-import {TickMath} from "@uniswap/v4-core/contracts/libraries/TickMath.sol";
+import {PoolSwap} from "../mocks/PoolSwap.sol";
 
 /// @notice Contract to initialize some test helpers
 /// @dev Minimal initialization. Inheriting contract should set up pools and provision liquidity
 contract HookTest is Test {
     PoolManager manager;
     PoolModifyPositionTest modifyPositionRouter;
-    PoolSwapTest swapRouter;
+    PoolSwap swapRouter;
     PoolDonateTest donateRouter;
     ERC20 token0;
     ERC20 token1;
@@ -44,7 +44,7 @@ contract HookTest is Test {
 
         // Helpers for interacting with the pool
         modifyPositionRouter = new PoolModifyPositionTest(IPoolManager(address(manager)));
-        swapRouter = new PoolSwapTest(IPoolManager(address(manager)));
+        swapRouter = new PoolSwap(IPoolManager(address(manager)));
         donateRouter = new PoolDonateTest(IPoolManager(address(manager)));
 
         // Approve for liquidity provision
@@ -63,8 +63,8 @@ contract HookTest is Test {
             sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT // unlimited impact
         });
 
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+        PoolSwap.TestSettings memory testSettings =
+            PoolSwap.TestSettings({withdrawTokens: true, settleUsingTransfer: true});
 
         swapRouter.swap(key, params, testSettings);
     }
