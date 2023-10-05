@@ -13,6 +13,7 @@ import {Deployers} from "@uniswap/v4-core/test/foundry-tests/utils/Deployers.sol
 import {CurrencyLibrary, Currency} from "@uniswap/v4-core/contracts/types/Currency.sol";
 import {Fees} from "@uniswap/v4-core/contracts/Fees.sol";
 import {FeeLibrary} from "@uniswap/v4-core/contracts/libraries/FeeLibrary.sol";
+import {Pool} from "@uniswap/v4-core/contracts/libraries/Pool.sol";
 
 import {HookTest} from "./utils/HookTest.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
@@ -27,6 +28,7 @@ import {IPublicLockV13} from "unlock/packages/contracts/src/contracts/PublicLock
 contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
+    using Pool for *;
 
     FlatRateFeeHook hookContract;
     PoolKey poolKey;
@@ -154,6 +156,42 @@ contract FlatRateFeeHockTest is HookTest, UnlockTest, Deployers, GasSnapshot {
         uint256 fee = uint(swapAmount * 2 / 100); // TODO: dont hardcode fee
 
         assertApproxEqAbs(balanceToken0, balanceToken1 + fee, slippage);
+    }
+
+    function testPurchaseSubscription() public {
+        // retrieve the lock contract for the pool
+        address lockAddress = hookContract.lockContracts(poolId);
+        address user = address(42);
+
+        // check that the user has no keys
+        assertEq(IPublicLockV13(lockAddress).balanceOf(user), 0);
+
+        // mint and approve tokens
+        _mintAndApprove(user, address(hookContract), 10**18);
+
+        // purchase a subscription
+        vm.startBroadcast(user);
+        uint256 tokenId = hookContract.purchaseSubscription(poolKey, 0.1 * 10**18);
+        vm.stopBroadcast();
+
+        // check that the user has 1 key
+        assertEq(IPublicLockV13(lockAddress).balanceOf(user), 1);
+    }
+
+    function testDonateFunctionality() public {
+
+        (,uint256 feeGrowthGlobal0X128BeforePurchase,,) = manager.pools(poolId);
+
+        // check the accured fees in the pool
+        assertEq(feeGrowthGlobal0X128BeforePurchase, 0);
+
+        testPurchaseSubscription();
+
+        (,uint256 feeGrowthGlobal0X128AfterPurchase,,) = manager.pools(poolId);
+
+        // check the accured fees in the pool
+        assertGt(feeGrowthGlobal0X128AfterPurchase, 0);
+        
     }
 
     function _mintAndApprove(address user, address spender, uint256 amount) public {
