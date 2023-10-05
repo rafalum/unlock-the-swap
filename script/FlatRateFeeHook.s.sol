@@ -6,9 +6,10 @@ import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
 import {PoolManager} from "@uniswap/v4-core/contracts/PoolManager.sol";
 import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
 import {PoolModifyPositionTest} from "@uniswap/v4-core/contracts/test/PoolModifyPositionTest.sol";
-import {PoolSwapTest} from "@uniswap/v4-core/contracts/test/PoolSwapTest.sol";
 import {PoolDonateTest} from "@uniswap/v4-core/contracts/test/PoolDonateTest.sol";
+
 import {HookMiner} from "../test/utils/HookMiner.sol";
+import {PoolSwap} from "../test/mocks/PoolSwap.sol";
 
 import {FlatRateFeeHook} from "../src/FlatRateFeeHook.sol";
 
@@ -63,7 +64,7 @@ contract FlatRateFeeHookScript is Script {
         // Additional helpers for interacting with the pool
         vm.startBroadcast();
         new PoolModifyPositionTest(IPoolManager(address(manager)));
-        new PoolSwapTest(IPoolManager(address(manager)));
+        new PoolSwap(IPoolManager(address(manager)));
         new PoolDonateTest(IPoolManager(address(manager)));
         vm.stopBroadcast();
     }
